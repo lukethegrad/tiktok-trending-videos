@@ -61,3 +61,14 @@ def process_enriched_video_data(df: pd.DataFrame) -> pd.DataFrame:
     df.drop_duplicates(subset=["Song Title", "Artist", "Sound ID"], inplace=True)
 
     return df.reset_index(drop=True)
+
+def merge_video_and_song_data(video_df: pd.DataFrame, enriched_df: pd.DataFrame) -> pd.DataFrame:
+    st.write("Merging video data with enriched sound metadata...")
+    if "video_url" not in video_df.columns or "video_url" not in enriched_df.columns:
+        st.error("❌ 'video_url' must be present in both DataFrames.")
+        return pd.DataFrame()
+
+    merged_df = pd.merge(video_df, enriched_df, on="video_url", how="inner")
+    st.write(f"✅ Merged {len(merged_df)} records.")
+    return merged_df
+
