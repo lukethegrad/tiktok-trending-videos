@@ -1,5 +1,5 @@
 streamlit
-requests
+apify-client
 pandas
 python-dotenv
 flask
