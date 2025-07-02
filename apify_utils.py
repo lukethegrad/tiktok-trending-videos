@@ -7,7 +7,7 @@ from typing import List
 
 # 🔐 Apify credentials
 APIFY_API_KEY = os.getenv("APIFY_API_KEY")
-SCRAPER_ACTOR = "lexis-solutions~tiktok-trending-videos-scraper"
+SCRAPER_ACTOR = "lexis-solutions/tiktok-trending-videos-scraper"
 ENRICHMENT_ACTOR = "delicious_zebu~tiktok-video-comment-scraper"
 
 def run_trending_scraper():
