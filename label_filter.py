@@ -1,5 +1,3 @@
-# label_filter.py
-
 import re
 
 EXCLUDED_LABELS = [
@@ -18,12 +16,13 @@ EXCLUDED_LABELS = [
 ]
 
 def is_signed_label(label: str) -> bool:
-    if not label:
+    if not isinstance(label, str):
         return False
+    label = label.lower()
     for name in EXCLUDED_LABELS:
-        if re.search(re.escape(name), label, re.IGNORECASE):
+        if name.lower() in label:
             return True
     return False
 
-def filter_unsigned_tracks(df):
-    return df[~df["Spotify Label"].apply(is_signed_label)]
+def filter_unsigned_tracks(df, label_column="Label"):
+    return df[~df[label_column].apply(is_signed_label)]
