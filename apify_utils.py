@@ -4,19 +4,23 @@ import time
 import pandas as pd
 import streamlit as st
 
+# 🔐 Apify credentials
 APIFY_API_KEY = os.getenv("APIFY_API_KEY")
-SCRAPER_ACTOR = "lexis-solutions~tiktok-trending-songs-scraper"
+SCRAPER_ACTOR = "lexis-solutions~tiktok-trending-videos-scraper"
 
 def run_trending_scraper():
-    run_url = f"https://api.apify.com/v2/acts/{SCRAPER_ACTOR}/runs?token={APIFY_API_KEY}"
+    """
+    Triggers the Apify actor to fetch trending TikTok videos and returns results as a DataFrame.
+    """
 
+    run_url = f"https://api.apify.com/v2/acts/{SCRAPER_ACTOR}/runs?token={APIFY_API_KEY}"
     headers = {
         "Content-Type": "application/json"
     }
-
     payload = {}
 
-    # 🔍 DEBUG LOGGING
+    # 🟡 DEBUG LOGGING
+    st.write("🎬 Starting Apify video scraper...")
     st.write("🔗 POSTing to:", run_url)
     st.write("📦 Headers:", headers)
     st.write("📝 Payload:", payload)
@@ -32,7 +36,7 @@ def run_trending_scraper():
     run_id = response.json()["data"]["id"]
     st.write(f"✅ Apify run started: {run_id}")
 
-    # 2. Poll for status
+    # ⏱️ Poll for completion
     status_url = f"https://api.apify.com/v2/actor-runs/{run_id}"
     for _ in range(30):
         time.sleep(5)
@@ -46,7 +50,7 @@ def run_trending_scraper():
         st.error("❌ Apify run did not finish successfully.")
         return None
 
-    # 3. Fetch dataset
+    # 📥 Fetch dataset
     dataset_id = status_data.get("defaultDatasetId")
     st.write(f"📁 Using dataset ID: {dataset_id}")
     if not dataset_id:
@@ -62,7 +66,7 @@ def run_trending_scraper():
         return None
 
     records = data_res.json()
-    st.write(f"🎵 Number of records: {len(records)}")
+    st.write(f"🎥 Number of videos fetched: {len(records)}")
 
     if not records:
         st.warning("⚠️ Apify returned an empty dataset.")
