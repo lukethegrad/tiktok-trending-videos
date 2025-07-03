@@ -5,7 +5,7 @@ import re
 def process_raw_data(df: pd.DataFrame) -> pd.DataFrame:
     st.write("Raw DataFrame columns:", list(df.columns))
 
-    required_cols = ["item_url", "music_title", "music_author", "music_url"]
+    required_cols = ["item_url", "title", "item_id", "cover", "region", "duration"]
     if not all(col in df.columns for col in required_cols):
         st.error("❌ Required video columns not found in the dataset.")
         return pd.DataFrame()
@@ -13,18 +13,18 @@ def process_raw_data(df: pd.DataFrame) -> pd.DataFrame:
     df = df[required_cols].copy()
     df.rename(columns={
         "item_url": "video_url",
-        "music_title": "Song Title",
-        "music_author": "Artist",
-        "music_url": "TikTok Sound URL"
+        "title": "caption",
+        "item_id": "video_id",
+        "cover": "thumbnail_url",
+        "region": "region",
+        "duration": "duration_seconds"
     }, inplace=True)
 
-    # Drop rows with missing critical info
-    df.dropna(subset=["Song Title", "Artist", "TikTok Sound URL", "video_url"], inplace=True)
-
-    # Drop duplicates
-    df.drop_duplicates(subset=["Song Title", "Artist", "TikTok Sound URL", "video_url"], inplace=True)
+    df.dropna(subset=["video_url", "caption", "video_id"], inplace=True)
+    df.drop_duplicates(subset=["video_url", "caption", "video_id"], inplace=True)
 
     return df.reset_index(drop=True)
+
 
 def process_enriched_video_data(df: pd.DataFrame) -> pd.DataFrame:
     st.write("Enriched DataFrame columns:", list(df.columns))
