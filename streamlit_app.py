@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import time
@@ -18,10 +17,23 @@ st.set_page_config(page_title="TikTok Trending Discovery", layout="wide")
 st.title("🎵 TikTok Trending Discovery Tool")
 st.markdown("This tool pulls the top trending TikTok **videos**, extracts the **songs used**, enriches them via **Spotify**, and filters for **unsigned tracks**.")
 
+# Sidebar: Scraper Settings
+st.sidebar.header("📊 Scraper Settings")
+
+country = st.sidebar.selectbox("🌍 Country", ["United Kingdom", "United States", "France", "Germany"])
+sort_by = st.sidebar.selectbox("🔥 Sort By", ["hot", "likes", "comments", "shares"])
+period = st.sidebar.selectbox("🕒 Period Type", ["last 7 days", "last 30 days"])
+max_items = st.sidebar.slider("🔢 Max Items", min_value=5, max_value=100, value=10, step=5)
+
 # Step 1 – Scrape trending TikTok videos
 if st.button("1️⃣ Fetch Trending Videos"):
     with st.spinner("Fetching trending TikTok videos..."):
-        raw_df = run_trending_scraper()
+        raw_df = run_trending_scraper(
+            country_code=country,
+            sort_by=sort_by,
+            period_type=period,
+            max_items=max_items
+        )
 
     if raw_df is None or raw_df.empty:
         st.error("❌ No data returned from Apify.")
