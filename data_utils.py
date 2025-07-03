@@ -7,7 +7,7 @@ def process_raw_data(df: pd.DataFrame) -> pd.DataFrame:
     st.write("Raw DataFrame columns:", list(df.columns))
 
     # Check required fields for TikTok video data
-    required_cols = ["title", "item_url", "duration", "cover", "region", "item_id"]
+    required_cols = ["item_url", "music_title", "music_author", "music_url"]
     if not all(col in df.columns for col in required_cols):
         st.error("❌ Required video columns not found in the dataset.")
         return pd.DataFrame()
