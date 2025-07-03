@@ -15,13 +15,12 @@ def process_raw_data(df: pd.DataFrame) -> pd.DataFrame:
     # Select and rename relevant fields
     df = df[required_cols].copy()
     df.rename(columns={
-        "title": "caption",
         "item_url": "video_url",
-        "duration": "duration_seconds",
-        "cover": "thumbnail_url",
-        "region": "region",
-        "item_id": "video_id"
+        "music_title": "Song Title",
+        "music_author": "Artist",
+        "music_url": "TikTok Sound URL"
     }, inplace=True)
+
 
     # Drop rows with missing critical info
     df.dropna(subset=["caption", "video_url", "video_id"], inplace=True)
