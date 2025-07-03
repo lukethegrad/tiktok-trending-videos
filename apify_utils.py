@@ -11,24 +11,45 @@ ENRICHMENT_ACTOR = "delicious_zebu/tiktok-video-comment-scraper"  # SDK format u
 
 client = ApifyClient(APIFY_API_KEY)
 
-def run_trending_scraper() -> pd.DataFrame:
+def run_trending_scraper(country_code="United Kingdom", sort_by="hot", period_type="last 7 days", max_items=10):
     """
-    Uses ApifyClient to fetch trending TikTok videos via SDK.
+    Triggers the Apify actor to fetch trending TikTok videos using user-defined parameters.
     """
-    try:
-        st.write("🎬 Starting Apify video scraper...")
-        run = client.actor(SCRAPER_ACTOR).call()
-        dataset_id = run["defaultDatasetId"]
-        st.write(f"📁 Dataset ID: {dataset_id}")
+    from apify_client import ApifyClient  # Make sure this is installed and added to requirements.txt
 
-        records = list(client.dataset(dataset_id).iterate_items())
-        st.write(f"🎥 Number of videos fetched: {len(records)}")
+    client = ApifyClient(os.getenv("APIFY_API_KEY"))
 
-        if not records:
-            st.warning("⚠️ Apify returned an empty dataset.")
-            return pd.DataFrame()
+    # Map human-friendly country to Apify expected code if needed
+    # You can expand this dictionary if needed
+    country_map = {
+        "United Kingdom": "GB",
+        "United States": "US",
+        "France": "FR",
+        "Germany": "DE"
+    }
+    country_code_resolved = country_map.get(country_code, country_code)
 
-        return pd.DataFrame(records)
+    input_payload = {
+        "countryCode": country_code_resolved,
+        "sort": sort_by,
+        "period": period_type,
+        "maxItems": max_items
+    }
+
+    st.write("🎬 Starting Apify trending video scrape with parameters:")
+    st.json(input_payload)
+
+    run = client.actor("lexis-solutions/tiktok-trending-videos-scraper").call(run_input=input_payload)
+    dataset_items = list(client.dataset(run["defaultDatasetId"]).iterate_items())
+
+    if not dataset_items:
+        st.warning("⚠️ Apify returned an empty dataset.")
+        return None
+
+    df = pd.DataFrame(dataset_items)
+    st.write(f"🎥 Number of videos fetched: {len(df)}")
+    return df
+
 
     except Exception as e:
         st.error("❌ Failed to run video scraper actor.")
