@@ -31,24 +31,31 @@ def process_raw_data(df: pd.DataFrame) -> pd.DataFrame:
 def process_enriched_video_data(df: pd.DataFrame) -> pd.DataFrame:
     st.write("Enriched DataFrame columns:", list(df.columns))
 
-    # Ensure required nested fields exist
     if "musicMeta" not in df.columns or "webVideoUrl" not in df.columns:
         st.error("❌ Required fields 'musicMeta' or 'webVideoUrl' not found.")
         return pd.DataFrame()
 
-    # Extract nested fields from musicMeta
-    df["Song Title"] = df["musicMeta"].apply(lambda x: x.get("musicName") if isinstance(x, dict) else None)
-    df["Artist"] = df["musicMeta"].apply(lambda x: x.get("musicAuthor") if isinstance(x, dict) else None)
-    df["TikTok Sound URL"] = None  # Optional: we don't get this from Clockworks
+    # Extract flattened columns
+    df["Author"] = df["authorMeta"].apply(lambda x: x.get("name") if isinstance(x, dict) else None)
+    df["Text"] = df["text"]
+    df["Diggs"] = df["diggCount"]
+    df["Shares"] = df["shareCount"]
+    df["Plays"] = df["playCount"]
+    df["Comments"] = df["commentCount"]
+    df["Duration (seconds)"] = df["videoMeta"].apply(lambda x: x.get("duration") if isinstance(x, dict) else None)
+    df["Music"] = df["musicMeta"].apply(lambda x: x.get("musicName") if isinstance(x, dict) else None)
+    df["Music author"] = df["musicMeta"].apply(lambda x: x.get("musicAuthor") if isinstance(x, dict) else None)
+    df["Music original?"] = df["musicMeta"].apply(lambda x: x.get("musicOriginal") if isinstance(x, dict) else None)
+    df["Create Time"] = df["createTimeISO"]
+    df["Video URL"] = df["webVideoUrl"]
 
-    # Rename for consistency
-    df.rename(columns={"webVideoUrl": "video_url"}, inplace=True)
-
-    # Drop incomplete and duplicate rows
-    df.dropna(subset=["Song Title", "Artist", "video_url"], inplace=True)
-    df.drop_duplicates(subset=["Song Title", "Artist", "video_url"], inplace=True)
+    # Extract and normalize video_id
+    import re
+    df["video_id"] = df["Video URL"].apply(lambda url: re.search(r'/video/(\d+)', url).group(1) if isinstance(url, str) else None)
+    df["video_url"] = df["video_id"].apply(lambda vid: f"https://www.tiktok.com/video/{vid}")
 
     return df.reset_index(drop=True)
+
 
 
 # Filter music only (exclude "original sound" etc.)
