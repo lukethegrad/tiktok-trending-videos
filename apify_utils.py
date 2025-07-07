@@ -77,7 +77,7 @@ def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
 
         run_input = {
             "mode": "bulk",
-            "videoUrls": valid_urls,
+            "videoUrls": list(video_urls),
             "shouldDownloadVideos": False,
             "shouldDownloadCovers": False,
             "scrapeRelatedVideos": False,
