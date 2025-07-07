@@ -37,7 +37,8 @@ def run_trending_scraper(country_code="United Kingdom", sort_by="hot", period_ty
             "countryCode": country_code_resolved,
             "sort": sort_by,
             "period": period_resolved,
-            "maxItems": max_items
+            "maxItems": max_items,
+            "resultsPerPage": max_items
         }
 
         st.write("🎬 Starting Apify trending video scrape with parameters:")
