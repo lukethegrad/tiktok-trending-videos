@@ -29,33 +29,27 @@ def process_raw_data(df: pd.DataFrame) -> pd.DataFrame:
 def process_enriched_video_data(df: pd.DataFrame) -> pd.DataFrame:
     st.write("Enriched DataFrame columns:", list(df.columns))
 
-    required_cols = ["url", "music_title", "music_author", "music_url"]
+    required_cols = ["webVideoUrl", "musicMeta.musicName", "musicMeta.musicAuthor"]
     if not all(col in df.columns for col in required_cols):
         st.error("❌ Required music metadata columns not found.")
         return pd.DataFrame()
 
     df = df[required_cols].copy()
     df.rename(columns={
-        "url": "video_url",
-        "music_title": "Song Title",
-        "music_author": "Artist",
-        "music_url": "TikTok Sound URL"
+        "webVideoUrl": "video_url",
+        "musicMeta.musicName": "Song Title",
+        "musicMeta.musicAuthor": "Artist"
     }, inplace=True)
 
-    # Extract sound ID from TikTok Sound URL
-    def extract_sound_id(url):
-        if isinstance(url, str):
-            match = re.search(r"-([0-9]+)$", url)
-            return match.group(1) if match else None
-        return None
-
-    df["Sound ID"] = df["TikTok Sound URL"].apply(extract_sound_id)
+    # Add placeholder for TikTok Sound URL
+    df["TikTok Sound URL"] = None
 
     # Drop incomplete rows and deduplicate
-    df.dropna(subset=["Song Title", "Artist", "Sound ID"], inplace=True)
-    df.drop_duplicates(subset=["Song Title", "Artist", "Sound ID"], inplace=True)
+    df.dropna(subset=["Song Title", "Artist", "video_url"], inplace=True)
+    df.drop_duplicates(subset=["Song Title", "Artist", "video_url"], inplace=True)
 
     return df.reset_index(drop=True)
+
 
 
 def filter_music_only(df: pd.DataFrame) -> pd.DataFrame:
