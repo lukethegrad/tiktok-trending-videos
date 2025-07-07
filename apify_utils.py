@@ -88,6 +88,11 @@ def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
 
         st.json(run_input)  # Debug input payload
 
+        import json
+        st.code(json.dumps(run_input, indent=2))  # 💡 Shows exact payload
+        st.write("Number of video URLs passed:", len(run_input["videoUrls"]))
+
+
         run = client.actor(ENRICHMENT_ACTOR).call(run_input=run_input)
         dataset_id = run["defaultDatasetId"]
         st.write(f"📁 Enrichment dataset ID: {dataset_id}")
