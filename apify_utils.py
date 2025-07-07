@@ -11,13 +11,12 @@ ENRICHMENT_ACTOR = "clockworks/tiktok-video-scraper"  # SDK format uses `/`
 
 client = ApifyClient(APIFY_API_KEY)
 
+
 def run_trending_scraper(country_code="United Kingdom", sort_by="hot", period_type="last 7 days", max_items=10) -> pd.DataFrame:
     """
     Triggers the Apify actor to fetch trending TikTok videos using user-defined parameters.
     """
-
     try:
-        # Optional mapping for more readable input
         country_map = {
             "United Kingdom": "GB",
             "United States": "US",
@@ -30,7 +29,7 @@ def run_trending_scraper(country_code="United Kingdom", sort_by="hot", period_ty
         }
 
         country_code_resolved = country_map.get(country_code, country_code)
-        period_resolved = period_map.get(period_type, period_type)  # fallback to raw string if already "7"/"30"
+        period_resolved = period_map.get(period_type, period_type)
 
         input_payload = {
             "countryCode": country_code_resolved,
@@ -59,7 +58,6 @@ def run_trending_scraper(country_code="United Kingdom", sort_by="hot", period_ty
         return pd.DataFrame()
 
 
-
 def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
     """
     Uses clockworks/tiktok-video-scraper to enrich TikTok video URLs with sound metadata.
@@ -68,22 +66,28 @@ def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
         st.warning("⚠️ No video URLs provided to enrich.")
         return pd.DataFrame()
 
+    # ⚠️ Sanity check — Apify fails silently if any URLs are malformed
+    valid_urls = [url for url in video_urls if url.startswith("https://www.tiktok.com/@")]
+    if not valid_urls:
+        st.error("❌ No valid TikTok @username/video links found. Aborting enrichment.")
+        return pd.DataFrame()
+
     try:
         st.write("🎼 Starting Apify enrichment (clockworks actor)...")
 
         run_input = {
-            "mode": "bulk",  # ✅ Enable bulk processing
-            "videoUrls": video_urls,
-            "postURLs": [],  # ⬅️ ADD THIS LINE to override default fallback
+            "mode": "bulk",
+            "videoUrls": valid_urls,
+            "postURLs": [],  # ⛔️ override default (fixes repeated apifyoffice scrape)
             "shouldDownloadVideos": False,
             "shouldDownloadCovers": False,
             "scrapeRelatedVideos": False,
             "shouldDownloadSubtitles": False,
-            "shouldDownloadSlideshowImages": False
+            "shouldDownloadSlideshowImages": False,
+            "resultsPerPage": len(valid_urls)  # ✅ tells actor how many to handle
         }
 
-
-        st.json(run_input)  # 🔍 Debug: view submitted input
+        st.json(run_input)  # Debug input payload
 
         run = client.actor(ENRICHMENT_ACTOR).call(run_input=run_input)
         dataset_id = run["defaultDatasetId"]
