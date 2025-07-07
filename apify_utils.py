@@ -9,9 +9,10 @@ from apify_client import ApifyClient
 # 🔐 Apify credentials
 APIFY_API_KEY = os.getenv("APIFY_API_KEY")
 SCRAPER_ACTOR = "lexis-solutions/tiktok-trending-videos-scraper"
-ENRICHMENT_ACTOR = "clockworks~tiktok-video-scraper"  # HTTP API format uses `~`
+ENRICHMENT_ACTOR = "clockworks~tiktok-video-scraper"  # HTTP API format uses ~
 
 client = ApifyClient(APIFY_API_KEY)
+
 
 def run_trending_scraper(country_code="United Kingdom", sort_by="hot", period_type="last 7 days", max_items=10) -> pd.DataFrame:
     """
@@ -61,25 +62,23 @@ def run_trending_scraper(country_code="United Kingdom", sort_by="hot", period_ty
 
 def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
     """
-    Uses clockworks/tiktok-video-scraper via HTTP to enrich TikTok video URLs with sound metadata.
+    Uses Apify HTTP API to run the clockworks/tiktok-video-scraper actor with bulk TikTok video URLs.
     """
-    import requests
-    import json
-
     if not video_urls:
         st.warning("⚠️ No video URLs provided to enrich.")
         return pd.DataFrame()
 
+    # ✅ Filter only valid TikTok URLs
     valid_urls = [url for url in video_urls if url.startswith("https://www.tiktok.com/@")]
     if not valid_urls:
         st.error("❌ No valid TikTok @username/video links found. Aborting enrichment.")
         return pd.DataFrame()
 
     try:
-        st.write("🎼 Starting Apify enrichment (clockworks actor)...")
+        st.write("🎼 Starting Apify enrichment (clockworks actor via HTTP API)...")
 
+        # Prepare payload
         start_urls = [{"url": url} for url in valid_urls]
-
         run_input = {
             "mode": "bulk",
             "startUrls": start_urls,
@@ -95,25 +94,22 @@ def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
         st.code(json.dumps(run_input, indent=2))
         st.write("Number of video URLs passed:", len(start_urls))
 
-        # HTTP call to Apify
+        # Step 1: Trigger Apify run
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {APIFY_API_KEY}"
         }
 
-        response = requests.post(
-            f"https://api.apify.com/v2/acts/{ENRICHMENT_ACTOR}/runs?wait=1",
-            json=run_input,
-            headers=headers
-        )
+        trigger_url = f"https://api.apify.com/v2/acts/{ENRICHMENT_ACTOR}/runs?wait=1"
+        response = requests.post(trigger_url, headers=headers, json=run_input)
         response.raise_for_status()
         run_data = response.json()
         dataset_id = run_data["data"]["defaultDatasetId"]
         st.write(f"📁 Enrichment dataset ID: {dataset_id}")
 
-        # Fetch dataset
-        dataset_items_url = f"https://api.apify.com/v2/datasets/{dataset_id}/items?format=json"
-        items_response = requests.get(dataset_items_url, headers=headers)
+        # Step 2: Download dataset results
+        dataset_url = f"https://api.apify.com/v2/datasets/{dataset_id}/items?format=json"
+        items_response = requests.get(dataset_url, headers=headers)
         items_response.raise_for_status()
         records = items_response.json()
         st.write(f"🎧 Enriched records received: {len(records)}")
