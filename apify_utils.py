@@ -78,7 +78,6 @@ def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
         run_input = {
             "mode": "bulk",
             "videoUrls": valid_urls,
-            "postURLs": [],  # ⛔️ override default (fixes repeated apifyoffice scrape)
             "shouldDownloadVideos": False,
             "shouldDownloadCovers": False,
             "scrapeRelatedVideos": False,
