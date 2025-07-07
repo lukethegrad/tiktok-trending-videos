@@ -78,7 +78,11 @@ def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
         st.write("🎼 Starting Apify enrichment (clockworks actor via HTTP API)...")
 
         # Prepare payload
-        start_urls = [{"url": url} for url in valid_urls]
+        # Test with just 1 video to isolate bulk-related issues
+        test_url = valid_urls[0]
+        start_urls = [{"url": test_url}]
+        st.warning(f"⚠️ TEST MODE: Only enriching one video URL → {test_url}")
+
         run_input = {
             "mode": "bulk",
             "startUrls": start_urls,
@@ -87,7 +91,7 @@ def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
             "scrapeRelatedVideos": False,
             "shouldDownloadSubtitles": False,
             "shouldDownloadSlideshowImages": False,
-            "resultsPerPage": len(start_urls)
+            "resultsPerPage": 1
         }
 
         st.json(run_input)
