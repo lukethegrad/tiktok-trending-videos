@@ -72,6 +72,7 @@ def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
         st.write("🎼 Starting Apify enrichment (clockworks actor)...")
 
         run_input = {
+            "mode": "bulk",  # ✅ Enable bulk processing
             "videoUrls": video_urls,
             "shouldDownloadVideos": False,
             "shouldDownloadCovers": False
@@ -94,3 +95,4 @@ def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
         st.error("❌ Failed to run enrichment actor.")
         st.error(str(e))
         return pd.DataFrame()
+
