@@ -61,8 +61,11 @@ def run_trending_scraper(country_code="United Kingdom", sort_by="hot", period_ty
 
 def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
     """
-    Uses the HTTP API to enrich TikTok video URLs with sound metadata.
+    Uses clockworks/tiktok-video-scraper via HTTP to enrich TikTok video URLs with sound metadata.
     """
+    import requests
+    import json
+
     if not video_urls:
         st.warning("⚠️ No video URLs provided to enrich.")
         return pd.DataFrame()
@@ -73,58 +76,55 @@ def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
         return pd.DataFrame()
 
     try:
-        st.write("🎼 Starting Apify enrichment (HTTP API)...")
+        st.write("🎼 Starting Apify enrichment (clockworks actor)...")
+
+        start_urls = [{"url": url} for url in valid_urls]
 
         run_input = {
             "mode": "bulk",
-            "videoUrls": valid_urls,
-            "postURLs": [],
+            "startUrls": start_urls,
             "shouldDownloadVideos": False,
             "shouldDownloadCovers": False,
             "scrapeRelatedVideos": False,
             "shouldDownloadSubtitles": False,
-            "shouldDownloadSlideshowImages": False
+            "shouldDownloadSlideshowImages": False,
+            "resultsPerPage": len(start_urls)
         }
 
-        # Debug view
         st.json(run_input)
         st.code(json.dumps(run_input, indent=2))
-        st.write("Number of video URLs passed:", len(valid_urls))
+        st.write("Number of video URLs passed:", len(start_urls))
 
-        # Trigger HTTP run
+        # HTTP call to Apify
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {APIFY_API_KEY}"
+        }
+
         response = requests.post(
-            f"https://api.apify.com/v2/acts/{ENRICHMENT_ACTOR}/runs?token={APIFY_API_KEY}&wait=1",
+            f"https://api.apify.com/v2/acts/{ENRICHMENT_ACTOR}/runs?wait=1",
             json=run_input,
-            timeout=300
+            headers=headers
         )
-
-        if response.status_code != 201:
-            st.error("❌ HTTP request to Apify failed.")
-            st.error(response.text)
-            return pd.DataFrame()
-
+        response.raise_for_status()
         run_data = response.json()
-        dataset_id = run_data.get("data", {}).get("defaultDatasetId")
+        dataset_id = run_data["data"]["defaultDatasetId"]
         st.write(f"📁 Enrichment dataset ID: {dataset_id}")
 
-        if not dataset_id:
-            st.warning("⚠️ No dataset ID returned.")
-            return pd.DataFrame()
-
-        dataset_url = f"https://api.apify.com/v2/datasets/{dataset_id}/items?format=json"
-        records_response = requests.get(dataset_url, timeout=60)
-
-        if records_response.status_code != 200:
-            st.error("❌ Failed to fetch dataset records.")
-            st.error(records_response.text)
-            return pd.DataFrame()
-
-        records = records_response.json()
+        # Fetch dataset
+        dataset_items_url = f"https://api.apify.com/v2/datasets/{dataset_id}/items?format=json"
+        items_response = requests.get(dataset_items_url, headers=headers)
+        items_response.raise_for_status()
+        records = items_response.json()
         st.write(f"🎧 Enriched records received: {len(records)}")
+
+        if not records:
+            st.warning("⚠️ Enrichment returned an empty dataset.")
+            return pd.DataFrame()
 
         return pd.DataFrame(records)
 
     except Exception as e:
-        st.error("❌ Failed to run enrichment actor via HTTP API.")
+        st.error("❌ Failed to run enrichment actor.")
         st.error(str(e))
         return pd.DataFrame()
