@@ -24,12 +24,18 @@ def run_trending_scraper(country_code="United Kingdom", sort_by="hot", period_ty
             "France": "FR",
             "Germany": "DE"
         }
+        period_map = {
+            "last 7 days": "7",
+            "last 30 days": "30"
+        }
+
         country_code_resolved = country_map.get(country_code, country_code)
+        period_resolved = period_map.get(period_type, period_type)  # fallback to raw string if already "7"/"30"
 
         input_payload = {
             "countryCode": country_code_resolved,
             "sort": sort_by,
-            "period": period_type,
+            "period": period_resolved,
             "maxItems": max_items
         }
 
@@ -51,6 +57,7 @@ def run_trending_scraper(country_code="United Kingdom", sort_by="hot", period_ty
         st.error("❌ Failed to run video scraper actor.")
         st.error(str(e))
         return pd.DataFrame()
+
 
 
 def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
