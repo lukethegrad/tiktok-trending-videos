@@ -6,13 +6,14 @@ import re
 def process_raw_data(df: pd.DataFrame) -> pd.DataFrame:
     st.write("Raw DataFrame columns:", list(df.columns))
 
-    required_cols = ["title", "id", "cover", "country_code", "duration"]
+    required_cols = ["item_url", "title", "id", "cover", "country_code", "duration"]
     if not all(col in df.columns for col in required_cols):
         st.error("❌ Required video columns not found in the dataset.")
         return pd.DataFrame()
 
     df = df[required_cols].copy()
     df.rename(columns={
+        "item_url": "video_url",               # ✅ Use actual URL from Lexis data
         "title": "caption",
         "id": "video_id",
         "cover": "thumbnail_url",
@@ -20,14 +21,10 @@ def process_raw_data(df: pd.DataFrame) -> pd.DataFrame:
         "duration": "duration_seconds"
     }, inplace=True)
 
-    # ✅ Build canonical video URLs using only video ID
-    df["video_url"] = df["video_id"].apply(lambda vid: f"https://www.tiktok.com/video/{vid}")
-
     df.dropna(subset=["video_url", "caption", "video_id"], inplace=True)
     df.drop_duplicates(subset=["video_url", "caption", "video_id"], inplace=True)
 
     return df.reset_index(drop=True)
-
 
 
 # From Clockworks video metadata scraper
@@ -52,7 +49,6 @@ def process_enriched_video_data(df: pd.DataFrame) -> pd.DataFrame:
     df.drop_duplicates(subset=["Song Title", "Artist", "video_url"], inplace=True)
 
     return df.reset_index(drop=True)
-
 
 
 # Filter music only (exclude "original sound" etc.)
