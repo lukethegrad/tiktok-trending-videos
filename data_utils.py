@@ -20,8 +20,8 @@ def process_raw_data(df: pd.DataFrame) -> pd.DataFrame:
         "duration": "duration_seconds"
     }, inplace=True)
 
-    # ✅ Construct clean TikTok URLs (avoids broken links with fake usernames)
-    df["video_url"] = "https://www.tiktok.com/video/" + df["video_id"].astype(str)
+    # ✅ Build canonical video URLs using only video ID
+    df["video_url"] = df["video_id"].apply(lambda vid: f"https://www.tiktok.com/video/{vid}")
 
     df.dropna(subset=["video_url", "caption", "video_id"], inplace=True)
     df.drop_duplicates(subset=["video_url", "caption", "video_id"], inplace=True)
