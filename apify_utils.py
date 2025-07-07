@@ -96,7 +96,7 @@ def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
 
         # Step 1: Trigger Apify run
         headers = {
-            "Content-Type": "application/json",
+            "Content-Type": "application/json; charset=utf-8",
             "Authorization": f"Bearer {APIFY_API_KEY}"
         }
 
