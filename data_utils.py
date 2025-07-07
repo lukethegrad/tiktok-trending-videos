@@ -2,20 +2,23 @@ import pandas as pd
 import streamlit as st
 import re
 
+# From Lexis Solutions trending scraper
 def process_raw_data(df: pd.DataFrame) -> pd.DataFrame:
     st.write("Raw DataFrame columns:", list(df.columns))
 
-    required_cols = ["webVideoUrl", "text", "id", "videoMeta.duration"]
+    required_cols = ["item_url", "title", "id", "cover", "country_code", "duration"]
     if not all(col in df.columns for col in required_cols):
         st.error("❌ Required video columns not found in the dataset.")
         return pd.DataFrame()
 
     df = df[required_cols].copy()
     df.rename(columns={
-        "webVideoUrl": "video_url",
-        "text": "caption",
+        "item_url": "video_url",               # consistent with Clockworks
+        "title": "caption",
         "id": "video_id",
-        "videoMeta.duration": "duration_seconds"
+        "cover": "thumbnail_url",
+        "country_code": "region",
+        "duration": "duration_seconds"
     }, inplace=True)
 
     df.dropna(subset=["video_url", "caption", "video_id"], inplace=True)
@@ -24,6 +27,7 @@ def process_raw_data(df: pd.DataFrame) -> pd.DataFrame:
     return df.reset_index(drop=True)
 
 
+# From Clockworks video metadata scraper
 def process_enriched_video_data(df: pd.DataFrame) -> pd.DataFrame:
     st.write("Enriched DataFrame columns:", list(df.columns))
 
@@ -39,23 +43,21 @@ def process_enriched_video_data(df: pd.DataFrame) -> pd.DataFrame:
         "musicMeta.musicAuthor": "Artist"
     }, inplace=True)
 
-    # Add placeholder for TikTok Sound URL
-    df["TikTok Sound URL"] = None
+    df["TikTok Sound URL"] = None  # Placeholder
 
-    # Drop incomplete rows and deduplicate
     df.dropna(subset=["Song Title", "Artist", "video_url"], inplace=True)
     df.drop_duplicates(subset=["Song Title", "Artist", "video_url"], inplace=True)
 
     return df.reset_index(drop=True)
 
 
+# Filter music only (exclude "original sound" etc.)
 def filter_music_only(df: pd.DataFrame) -> pd.DataFrame:
     st.write("🔍 Filtering non-music sounds...")
     if "Song Title" not in df.columns:
         st.warning("⚠️ 'Song Title' column missing — cannot filter music.")
         return df
 
-    # Filter out typical UGC or sound effects
     music_df = df[~df["Song Title"].str.lower().str.startswith("original sound")]
     music_df = music_df[music_df["Song Title"].str.strip() != ""]
 
@@ -63,6 +65,7 @@ def filter_music_only(df: pd.DataFrame) -> pd.DataFrame:
     return music_df.reset_index(drop=True)
 
 
+# Merge enriched metadata with raw video data
 def merge_video_and_song_data(video_df: pd.DataFrame, enriched_df: pd.DataFrame) -> pd.DataFrame:
     st.write("Merging video data with enriched sound metadata...")
     if "video_url" not in video_df.columns or "video_url" not in enriched_df.columns:
