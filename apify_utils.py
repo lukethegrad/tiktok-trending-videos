@@ -63,9 +63,11 @@ def run_trending_scraper(country_code="United Kingdom", sort_by="hot", period_ty
 def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
     """
     Uses clockworks/tiktok-video-scraper via HTTP to enrich TikTok video URLs with sound metadata.
+    Waits dynamically until dataset is populated or timeout is reached.
     """
     import requests
     import json
+    import time
 
     if not video_urls:
         st.warning("⚠️ No video URLs provided to enrich.")
@@ -77,27 +79,31 @@ def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
         return pd.DataFrame()
 
     try:
-        st.write("🎼 Starting Apify enrichment using `postURLs`...")
+        st.write("🎼 Starting Apify enrichment (clockworks actor)...")
+
+        post_urls = valid_urls  # Required key format
 
         run_input = {
-            "postURLs": valid_urls,
-            "resultsPerPage": len(valid_urls),
+            "postURLs": post_urls,
+            "mode": "bulk",
             "shouldDownloadVideos": False,
             "shouldDownloadCovers": False,
             "scrapeRelatedVideos": False,
             "shouldDownloadSubtitles": False,
-            "shouldDownloadSlideshowImages": False
+            "shouldDownloadSlideshowImages": False,
+            "resultsPerPage": len(post_urls)
         }
 
         st.json(run_input)
         st.code(json.dumps(run_input, indent=2))
-        st.write("Number of video URLs passed:", len(valid_urls))
+        st.write("Number of video URLs passed:", len(post_urls))
 
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {APIFY_API_KEY}"
         }
 
+        # Run Apify actor (async wait for completion)
         response = requests.post(
             f"https://api.apify.com/v2/acts/{ENRICHMENT_ACTOR}/runs?wait=1",
             json=run_input,
@@ -108,19 +114,31 @@ def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
         dataset_id = run_data["data"]["defaultDatasetId"]
         st.write(f"📁 Enrichment dataset ID: {dataset_id}")
 
+        # ⏳ Poll dataset until it's populated or timeout hits
         dataset_items_url = f"https://api.apify.com/v2/datasets/{dataset_id}/items?format=json"
-        items_response = requests.get(dataset_items_url, headers=headers)
-        items_response.raise_for_status()
-        records = items_response.json()
-        st.write(f"🎧 Enriched records received: {len(records)}")
+        timeout = 300  # seconds (5 minutes max)
+        poll_interval = 5
+        elapsed = 0
 
-        if not records:
-            st.warning("⚠️ Enrichment returned an empty dataset.")
-            return pd.DataFrame()
+        st.write("🔄 Polling Apify for dataset readiness...")
 
-        return pd.DataFrame(records)
+        while elapsed < timeout:
+            items_response = requests.get(dataset_items_url, headers=headers)
+            if items_response.status_code == 200:
+                records = items_response.json()
+                if records:
+                    st.success(f"🎧 Enriched records received: {len(records)}")
+                    return pd.DataFrame(records)
+
+            time.sleep(poll_interval)
+            elapsed += poll_interval
+            st.write(f"⏳ Waited {elapsed}s... still waiting for dataset...")
+
+        st.warning("⚠️ Enrichment timed out after 5 minutes without receiving any data.")
+        return pd.DataFrame()
 
     except Exception as e:
         st.error("❌ Failed to run enrichment actor.")
         st.error(str(e))
         return pd.DataFrame()
+
