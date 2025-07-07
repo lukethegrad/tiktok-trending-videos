@@ -7,49 +7,45 @@ from apify_client import ApifyClient
 # 🔐 Apify credentials
 APIFY_API_KEY = os.getenv("APIFY_API_KEY")
 SCRAPER_ACTOR = "lexis-solutions/tiktok-trending-videos-scraper"
-ENRICHMENT_ACTOR = "delicious_zebu/tiktok-video-comment-scraper"  # SDK format uses `/`, not `~`
+ENRICHMENT_ACTOR = "delicious_zebu/tiktok-video-comment-scraper"  # SDK format uses `/`
 
 client = ApifyClient(APIFY_API_KEY)
 
-def run_trending_scraper(country_code="United Kingdom", sort_by="hot", period_type="last 7 days", max_items=10):
+def run_trending_scraper(country_code="United Kingdom", sort_by="hot", period_type="last 7 days", max_items=10) -> pd.DataFrame:
     """
     Triggers the Apify actor to fetch trending TikTok videos using user-defined parameters.
     """
-    from apify_client import ApifyClient  # Make sure this is installed and added to requirements.txt
 
-    client = ApifyClient(os.getenv("APIFY_API_KEY"))
+    try:
+        # Optional mapping for more readable input
+        country_map = {
+            "United Kingdom": "GB",
+            "United States": "US",
+            "France": "FR",
+            "Germany": "DE"
+        }
+        country_code_resolved = country_map.get(country_code, country_code)
 
-    # Map human-friendly country to Apify expected code if needed
-    # You can expand this dictionary if needed
-    country_map = {
-        "United Kingdom": "GB",
-        "United States": "US",
-        "France": "FR",
-        "Germany": "DE"
-    }
-    country_code_resolved = country_map.get(country_code, country_code)
+        input_payload = {
+            "countryCode": country_code_resolved,
+            "sort": sort_by,
+            "period": period_type,
+            "maxItems": max_items
+        }
 
-    input_payload = {
-        "countryCode": country_code_resolved,
-        "sort": sort_by,
-        "period": period_type,
-        "maxItems": max_items
-    }
+        st.write("🎬 Starting Apify trending video scrape with parameters:")
+        st.json(input_payload)
 
-    st.write("🎬 Starting Apify trending video scrape with parameters:")
-    st.json(input_payload)
+        run = client.actor(SCRAPER_ACTOR).call(run_input=input_payload)
+        dataset_items = list(client.dataset(run["defaultDatasetId"]).iterate_items())
 
-    run = client.actor("lexis-solutions/tiktok-trending-videos-scraper").call(run_input=input_payload)
-    dataset_items = list(client.dataset(run["defaultDatasetId"]).iterate_items())
+        if not dataset_items:
+            st.warning("⚠️ Apify returned an empty dataset.")
+            return pd.DataFrame()
 
-    if not dataset_items:
-        st.warning("⚠️ Apify returned an empty dataset.")
-        return None
-
-    df = pd.DataFrame(dataset_items)
-    st.write(f"🎥 Number of videos fetched: {len(df)}")
-    return df
-
+        df = pd.DataFrame(dataset_items)
+        st.write(f"🎥 Number of videos fetched: {len(df)}")
+        return df
 
     except Exception as e:
         st.error("❌ Failed to run video scraper actor.")
