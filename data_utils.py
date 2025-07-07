@@ -5,19 +5,17 @@ import re
 def process_raw_data(df: pd.DataFrame) -> pd.DataFrame:
     st.write("Raw DataFrame columns:", list(df.columns))
 
-    required_cols = ["item_url", "title", "item_id", "cover", "region", "duration"]
+    required_cols = ["webVideoUrl", "text", "id", "videoMeta.duration"]
     if not all(col in df.columns for col in required_cols):
         st.error("❌ Required video columns not found in the dataset.")
         return pd.DataFrame()
 
     df = df[required_cols].copy()
     df.rename(columns={
-        "item_url": "video_url",
-        "title": "caption",
-        "item_id": "video_id",
-        "cover": "thumbnail_url",
-        "region": "region",
-        "duration": "duration_seconds"
+        "webVideoUrl": "video_url",
+        "text": "caption",
+        "id": "video_id",
+        "videoMeta.duration": "duration_seconds"
     }, inplace=True)
 
     df.dropna(subset=["video_url", "caption", "video_id"], inplace=True)
@@ -51,11 +49,7 @@ def process_enriched_video_data(df: pd.DataFrame) -> pd.DataFrame:
     return df.reset_index(drop=True)
 
 
-
 def filter_music_only(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Filter out non-music sounds (e.g. 'original sound' or empty strings).
-    """
     st.write("🔍 Filtering non-music sounds...")
     if "Song Title" not in df.columns:
         st.warning("⚠️ 'Song Title' column missing — cannot filter music.")
@@ -67,6 +61,7 @@ def filter_music_only(df: pd.DataFrame) -> pd.DataFrame:
 
     st.write(f"🎼 Music-based videos remaining: {len(music_df)}")
     return music_df.reset_index(drop=True)
+
 
 def merge_video_and_song_data(video_df: pd.DataFrame, enriched_df: pd.DataFrame) -> pd.DataFrame:
     st.write("Merging video data with enriched sound metadata...")
