@@ -76,7 +76,10 @@ def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
             "videoUrls": video_urls,
             "shouldDownloadVideos": False,
             "shouldDownloadCovers": False
+            # ❌ DO NOT include 'postURLs' or any defaults
         }
+
+        st.json(run_input)  # 🔍 Debug: view submitted input
 
         run = client.actor(ENRICHMENT_ACTOR).call(run_input=run_input)
         dataset_id = run["defaultDatasetId"]
@@ -95,4 +98,3 @@ def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
         st.error("❌ Failed to run enrichment actor.")
         st.error(str(e))
         return pd.DataFrame()
-
