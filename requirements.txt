@@ -3,3 +3,4 @@ apify-client
 pandas
 python-dotenv
 flask
+requests
