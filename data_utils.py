@@ -6,14 +6,13 @@ import re
 def process_raw_data(df: pd.DataFrame) -> pd.DataFrame:
     st.write("Raw DataFrame columns:", list(df.columns))
 
-    required_cols = ["item_url", "title", "id", "cover", "country_code", "duration"]
+    required_cols = ["title", "id", "cover", "country_code", "duration"]
     if not all(col in df.columns for col in required_cols):
         st.error("❌ Required video columns not found in the dataset.")
         return pd.DataFrame()
 
     df = df[required_cols].copy()
     df.rename(columns={
-        "item_url": "video_url",               # consistent with Clockworks
         "title": "caption",
         "id": "video_id",
         "cover": "thumbnail_url",
@@ -21,10 +20,14 @@ def process_raw_data(df: pd.DataFrame) -> pd.DataFrame:
         "duration": "duration_seconds"
     }, inplace=True)
 
+    # ✅ Construct clean TikTok URLs (avoids broken links with fake usernames)
+    df["video_url"] = "https://www.tiktok.com/video/" + df["video_id"].astype(str)
+
     df.dropna(subset=["video_url", "caption", "video_id"], inplace=True)
     df.drop_duplicates(subset=["video_url", "caption", "video_id"], inplace=True)
 
     return df.reset_index(drop=True)
+
 
 
 # From Clockworks video metadata scraper
