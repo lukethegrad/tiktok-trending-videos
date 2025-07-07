@@ -114,11 +114,28 @@ def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
         dataset_id = run_data["data"]["defaultDatasetId"]
         st.write(f"📁 Enrichment dataset ID: {dataset_id}")
 
-        # ⏳ Poll dataset until it's populated or timeout hits
+                # ⏳ Poll dataset until it's populated with valid music data or timeout hits
         dataset_items_url = f"https://api.apify.com/v2/datasets/{dataset_id}/items?format=json"
-        timeout = 300  # seconds (5 minutes max)
-        poll_interval = 5
+        timeout = 1000  # seconds (5 min max)
+        poll_interval = 10
         elapsed = 0
+        first_poll_delay = 60
+
+        time.sleep(first_poll_delay)  # Give Apify time to populate dataset
+        st.write("🔄 Polling Apify for dataset readiness...")
+
+        while elapsed < timeout:
+            items_response = requests.get(dataset_items_url, headers=headers)
+            if items_response.status_code == 200:
+                records = items_response.json()
+                if any("musicMeta" in r and r["musicMeta"] for r in records):
+                    st.success(f"🎧 Enriched records received: {len(records)}")
+                    return pd.DataFrame(records)
+
+            time.sleep(poll_interval)
+            elapsed += poll_interval
+            st.write(f"⏳ Waited {elapsed}s... still waiting for dataset with valid music metadata...")
+
 
         st.write("🔄 Polling Apify for dataset readiness...")
 
