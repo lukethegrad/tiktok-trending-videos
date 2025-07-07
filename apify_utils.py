@@ -7,7 +7,7 @@ from apify_client import ApifyClient
 # 🔐 Apify credentials
 APIFY_API_KEY = os.getenv("APIFY_API_KEY")
 SCRAPER_ACTOR = "lexis-solutions/tiktok-trending-videos-scraper"
-ENRICHMENT_ACTOR = "delicious_zebu/tiktok-video-comment-scraper"  # SDK format uses `/`
+ENRICHMENT_ACTOR = "clockworks/tiktok-video-scraper"  # SDK format uses `/`
 
 client = ApifyClient(APIFY_API_KEY)
 
@@ -62,16 +62,22 @@ def run_trending_scraper(country_code="United Kingdom", sort_by="hot", period_ty
 
 def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
     """
-    Uses ApifyClient to enrich TikTok video URLs with comment and sound metadata.
-    Returns a DataFrame with music and video metadata.
+    Uses clockworks/tiktok-video-scraper to enrich TikTok video URLs with sound metadata.
     """
     if not video_urls:
         st.warning("⚠️ No video URLs provided to enrich.")
         return pd.DataFrame()
 
     try:
-        st.write("🎼 Starting Apify enrichment (video → sound metadata)...")
-        run = client.actor(ENRICHMENT_ACTOR).call(run_input={"video_urls": video_urls})
+        st.write("🎼 Starting Apify enrichment (clockworks actor)...")
+
+        run_input = {
+            "videoUrls": video_urls,
+            "shouldDownloadVideos": False,
+            "shouldDownloadCovers": False
+        }
+
+        run = client.actor(ENRICHMENT_ACTOR).call(run_input=run_input)
         dataset_id = run["defaultDatasetId"]
         st.write(f"📁 Enrichment dataset ID: {dataset_id}")
 
