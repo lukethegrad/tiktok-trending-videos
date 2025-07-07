@@ -31,24 +31,25 @@ def process_raw_data(df: pd.DataFrame) -> pd.DataFrame:
 def process_enriched_video_data(df: pd.DataFrame) -> pd.DataFrame:
     st.write("Enriched DataFrame columns:", list(df.columns))
 
-    required_cols = ["webVideoUrl", "musicMeta.musicName", "musicMeta.musicAuthor"]
-    if not all(col in df.columns for col in required_cols):
-        st.error("❌ Required music metadata columns not found.")
+    # Ensure required nested fields exist
+    if "musicMeta" not in df.columns or "webVideoUrl" not in df.columns:
+        st.error("❌ Required fields 'musicMeta' or 'webVideoUrl' not found.")
         return pd.DataFrame()
 
-    df = df[required_cols].copy()
-    df.rename(columns={
-        "webVideoUrl": "video_url",
-        "musicMeta.musicName": "Song Title",
-        "musicMeta.musicAuthor": "Artist"
-    }, inplace=True)
+    # Extract nested fields from musicMeta
+    df["Song Title"] = df["musicMeta"].apply(lambda x: x.get("musicName") if isinstance(x, dict) else None)
+    df["Artist"] = df["musicMeta"].apply(lambda x: x.get("musicAuthor") if isinstance(x, dict) else None)
+    df["TikTok Sound URL"] = None  # Optional: we don't get this from Clockworks
 
-    df["TikTok Sound URL"] = None  # Placeholder
+    # Rename for consistency
+    df.rename(columns={"webVideoUrl": "video_url"}, inplace=True)
 
+    # Drop incomplete and duplicate rows
     df.dropna(subset=["Song Title", "Artist", "video_url"], inplace=True)
     df.drop_duplicates(subset=["Song Title", "Artist", "video_url"], inplace=True)
 
     return df.reset_index(drop=True)
+
 
 
 # Filter music only (exclude "original sound" etc.)
