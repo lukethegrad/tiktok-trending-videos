@@ -74,10 +74,14 @@ def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
         run_input = {
             "mode": "bulk",  # ✅ Enable bulk processing
             "videoUrls": video_urls,
+            "postURLs": [],  # ⬅️ ADD THIS LINE to override default fallback
             "shouldDownloadVideos": False,
-            "shouldDownloadCovers": False
-            # ❌ DO NOT include 'postURLs' or any defaults
+            "shouldDownloadCovers": False,
+            "scrapeRelatedVideos": False,
+            "shouldDownloadSubtitles": False,
+            "shouldDownloadSlideshowImages": False
         }
+
 
         st.json(run_input)  # 🔍 Debug: view submitted input
 
