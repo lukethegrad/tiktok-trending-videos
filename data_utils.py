@@ -61,15 +61,17 @@ def process_enriched_video_data(df: pd.DataFrame) -> pd.DataFrame:
 # Filter music only (exclude "original sound" etc.)
 def filter_music_only(df: pd.DataFrame) -> pd.DataFrame:
     st.write("🔍 Filtering non-music sounds...")
-    if "Song Title" not in df.columns:
-        st.warning("⚠️ 'Song Title' column missing — cannot filter music.")
+    if "Music" not in df.columns:
+        st.warning("⚠️ 'Music' column missing — cannot filter music.")
         return df
 
-    music_df = df[~df["Song Title"].str.lower().str.startswith("original sound")]
-    music_df = music_df[music_df["Song Title"].str.strip() != ""]
+    # Exclude original sounds and empty music titles
+    music_df = df[~df["Music"].str.lower().str.contains("original sound", na=False)]
+    music_df = music_df[df["Music"].str.strip() != ""]
 
     st.write(f"🎼 Music-based videos remaining: {len(music_df)}")
     return music_df.reset_index(drop=True)
+
 
 
 # Merge enriched metadata with raw video data
