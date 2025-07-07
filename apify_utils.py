@@ -62,58 +62,54 @@ def run_trending_scraper(country_code="United Kingdom", sort_by="hot", period_ty
 
 def run_video_comment_scraper(video_urls: List[str]) -> pd.DataFrame:
     """
-    Uses Apify HTTP API to run the clockworks/tiktok-video-scraper actor with bulk TikTok video URLs.
+    Uses clockworks/tiktok-video-scraper via HTTP to enrich TikTok video URLs with sound metadata.
     """
+    import requests
+    import json
+
     if not video_urls:
         st.warning("⚠️ No video URLs provided to enrich.")
         return pd.DataFrame()
 
-    # ✅ Filter only valid TikTok URLs
     valid_urls = [url for url in video_urls if url.startswith("https://www.tiktok.com/@")]
     if not valid_urls:
         st.error("❌ No valid TikTok @username/video links found. Aborting enrichment.")
         return pd.DataFrame()
 
     try:
-        st.write("🎼 Starting Apify enrichment (clockworks actor via HTTP API)...")
-
-        # Prepare payload
-        # Test with just 1 video to isolate bulk-related issues
-        test_url = valid_urls[0]
-        start_urls = [{"url": test_url}]
-        st.warning(f"⚠️ TEST MODE: Only enriching one video URL → {test_url}")
+        st.write("🎼 Starting Apify enrichment using `postURLs`...")
 
         run_input = {
-            "mode": "bulk",
-            "startUrls": start_urls,
+            "postURLs": valid_urls,
+            "resultsPerPage": len(valid_urls),
             "shouldDownloadVideos": False,
             "shouldDownloadCovers": False,
             "scrapeRelatedVideos": False,
             "shouldDownloadSubtitles": False,
-            "shouldDownloadSlideshowImages": False,
-            "resultsPerPage": 1
+            "shouldDownloadSlideshowImages": False
         }
 
         st.json(run_input)
         st.code(json.dumps(run_input, indent=2))
-        st.write("Number of video URLs passed:", len(start_urls))
+        st.write("Number of video URLs passed:", len(valid_urls))
 
-        # Step 1: Trigger Apify run
         headers = {
-            "Content-Type": "application/json; charset=utf-8",
+            "Content-Type": "application/json",
             "Authorization": f"Bearer {APIFY_API_KEY}"
         }
 
-        trigger_url = f"https://api.apify.com/v2/acts/{ENRICHMENT_ACTOR}/runs?wait=1"
-        response = requests.post(trigger_url, headers=headers, json=run_input)
+        response = requests.post(
+            f"https://api.apify.com/v2/acts/{ENRICHMENT_ACTOR}/runs?wait=1",
+            json=run_input,
+            headers=headers
+        )
         response.raise_for_status()
         run_data = response.json()
         dataset_id = run_data["data"]["defaultDatasetId"]
         st.write(f"📁 Enrichment dataset ID: {dataset_id}")
 
-        # Step 2: Download dataset results
-        dataset_url = f"https://api.apify.com/v2/datasets/{dataset_id}/items?format=json"
-        items_response = requests.get(dataset_url, headers=headers)
+        dataset_items_url = f"https://api.apify.com/v2/datasets/{dataset_id}/items?format=json"
+        items_response = requests.get(dataset_items_url, headers=headers)
         items_response.raise_for_status()
         records = items_response.json()
         st.write(f"🎧 Enriched records received: {len(records)}")
