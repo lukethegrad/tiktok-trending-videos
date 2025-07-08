@@ -112,18 +112,22 @@ if "music_df" in st.session_state and st.button("3⃣ Enrich with Spotify"):
 
 
 # Step 4 – Filter unsigned songs
-if "spotify_df" in st.session_state and st.button("4⃣ Show Unsigned Songs"):
+if "spotify_df" in st.session_state and st.button("4️⃣ Show Unsigned Songs"):
     with st.spinner("Filtering for unsigned or unknown-label songs..."):
         unsigned_df = filter_unsigned_tracks(st.session_state["spotify_df"])
         st.session_state["unsigned_df"] = unsigned_df
 
-        st.success(f"🇳🇴 Found {len(unsigned_df)} unsigned or unknown-label songs.")
-        unsigned_display_df = unsigned_df[display_cols]  # reuse the same column filter
+        st.success(f"🆓 Found {len(unsigned_df)} unsigned or unknown-label songs.")
         st.subheader("🆓 Unsigned or Unknown-Label Songs")
+
+        # ✅ Re-define display_cols here
+        display_cols = [
+            "Music", "Music author", "Label", 
+            "diggCount", "shareCount", "playCount", "commentCount"
+        ]
+
+        unsigned_display_df = unsigned_df[display_cols]
         st.dataframe(unsigned_display_df)
-        
+
         csv = unsigned_display_df.to_csv(index=False).encode("utf-8")
-
-
-        csv = unsigned_df.to_csv(index=False).encode("utf-8")
         st.download_button("⬇️ Download Unsigned Songs CSV", csv, "unsigned_tiktok_songs.csv", "text/csv")
