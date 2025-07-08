@@ -79,19 +79,30 @@ if "video_df" in st.session_state and st.button("2⃣ Enrich Sound Metadata"):
 # Step 3 – Enrich with Spotify metadata (only music videos)
 if "music_df" in st.session_state and st.button("3⃣ Enrich with Spotify"):
     with st.spinner("Querying Spotify..."):
-        spotify_df = enrich_with_spotify(st.session_state["music_df"])
+        # ✅ Rename columns to match expected input for enrichment
+        spotify_input_df = st.session_state["music_df"].rename(
+            columns={
+                "Music": "Song Title",
+                "Music author": "Artist"
+            }
+        )
+        spotify_df = enrich_with_spotify(spotify_input_df)
         st.session_state["spotify_df"] = spotify_df
         st.success("✅ Spotify enrichment complete.")
 
-        # Table – Enriched music data
-                # Filter the columns for clarity
+        # ✅ Filter the columns for clarity
         display_cols = [
             "Music", "Music author", "Label", 
             "diggCount", "shareCount", "playCount", "commentCount"
         ]
-        spotify_display_df = spotify_df[display_cols]
-        st.subheader("🎧 Enriched Songs with Labels")
-        st.dataframe(spotify_display_df)
+        try:
+            spotify_display_df = spotify_df[display_cols]
+        except KeyError:
+            st.warning("⚠️ Some display columns are missing. Showing all columns instead.")
+            st.dataframe(spotify_df)
+        else:
+            st.subheader("🎧 Enriched Songs with Labels")
+            st.dataframe(spotify_display_df)
 
 
 # Step 4 – Filter unsigned songs
