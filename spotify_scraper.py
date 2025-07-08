@@ -83,17 +83,31 @@ def get_spotify_label(song_title: str, artist_name: str, token: str) -> dict:
 def enrich_with_spotify(df: pd.DataFrame) -> pd.DataFrame:
     """
     Accepts a DataFrame with 'Song Title' and 'Artist' columns and adds Spotify enrichment.
+    Skips rows with missing title/artist to avoid 400 errors.
     """
     token = get_access_token()
 
     results = []
-    for i, row in df.iterrows():
-        title = row.get("Song Title", "")
-        artist = row.get("Artist", "")
-        st.write(f"🔍 Searching Spotify for: {title} – {artist}")
+    for _, row in df.iterrows():
+        title = str(row.get("Song Title", "")).strip()
+        artist = str(row.get("Artist", "")).strip()
+
+        if not title or not artist:
+            st.warning("⚠️ Skipping row due to missing title or artist.")
+            results.append({
+                "Spotify Track": None,
+                "Spotify Artist": None,
+                "Album": None,
+                "Label": "Unknown"
+            })
+            continue
+
+        query = f"{title} {artist}"
+        st.write(f"🔍 Searching Spotify for: {query}")
+
         result = get_spotify_label(title, artist, token)
         results.append(result)
-        time.sleep(0.2)  # to stay under rate limits
+        time.sleep(0.2)  # avoid hitting rate limits
 
     enrichment_df = pd.DataFrame(results)
     return pd.concat([df.reset_index(drop=True), enrichment_df.reset_index(drop=True)], axis=1)
